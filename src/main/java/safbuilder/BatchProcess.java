@@ -15,6 +15,7 @@ public class BatchProcess {
         options.addOption("s", "symbolicLink", false, "Set a Symbolic Link for bitstreams (instead of copying them)");
         options.addOption("z", "zip", false, "(optional) ZIP the output");
         options.addOption("o", "output-name", true, "(optional) Name the output file");
+        options.addOption("r", "registration", true, "(optional) Initialize for registration of bitstreams to specified bitstore number; don't copy binary data.");
 
         CommandLine commandLine = parser.parse(options, args);
 
@@ -39,6 +40,10 @@ public class BatchProcess {
         if(commandLine.hasOption('c')) {
             if(commandLine.hasOption('s')){
                 safPackageInstance.setSymbolicLink(true);
+            }
+            if(commandLine.hasOption('r')){
+                safPackageInstance.setRegistration(true);
+                safPackageInstance.setStoreNumber(commandLine.getOptionValue('r'));
             }
             safPackageInstance.processMetaPack(commandLine.getOptionValue('c'), commandLine.hasOption('z'));
         }

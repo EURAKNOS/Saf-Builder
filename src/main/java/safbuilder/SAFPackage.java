@@ -34,6 +34,10 @@ class SAFPackage {
     //Set a a Symbolic Link for files instead of copying them
     private boolean symbolicLink = false;
 
+    //Extra variables for registering objects rather than importing
+    private String storeNumber;
+    private boolean registration = false;
+
     /**
      * Default constructor. Main method of this class is processMetaPack. The goal of this is to create a Simple Archive Format
      * package from input of files and csv metadata.
@@ -369,7 +373,8 @@ class SAFPackage {
      * @param filenames      String with filename / filenames separated by separator.
      * @param globalFileParameters Parameters for these files. Blank value means nothing special needs to happen.
      */
-    private void processMetaBodyRowFile(BufferedWriter contentsWriter, String itemDirectory, String filenames, String globalFileParameters) {
+    private void processMetaBodyRowFile(BufferedWriter contentsWriter, String itemDirectory, String filenames,
+                                        String globalFileParameters) {
         String[] files = filenames.split(seperatorRegex);
 
         for (int j = 0; j < files.length; j++) {
@@ -390,19 +395,23 @@ class SAFPackage {
             try {
 
                 //copying files
-                if (!symbolicLink) {
-                    FileUtils.copyFileToDirectory(new File(input.getPath() + "/" + currentFile), new File(itemDirectory));
-                }
-                //instead of copying them, set a symbolicLink
-                else {
+                if (symbolicLink) {
                     Path pathLink = (new File(input.getPath() + "/" + currentFile)).toPath();
                     File f = new File(currentFile);
                     Path pathTarget = (new File(itemDirectory + "/" + f.getName())).toPath();
                     Files.createSymbolicLink(pathTarget, pathLink);
                 }
+                //instead of copying them, set a symbolicLink
+                else if(!registration){
+                    FileUtils.copyFileToDirectory(new File(input.getPath() + "/" + currentFile), new File(itemDirectory));
+                }
                 incrementFileHit(currentFile); //TODO fix file counter to deal with multifiles
 
                 String contentsRow = getFilenameName(currentFile);
+                if(registration){
+                    String contentsPrefix = String.format("-r -s %s -f ", storeNumber);
+                    contentsRow = contentsPrefix.concat(contentsRow); //TODO: hardcoded store number
+                }
                 if (fileParameters.length() > 0) {
                     // bundle:SOMETHING, primary:TRUE or description:Something, or any combination with "__" in between
                     String[] parameters = fileParameters.split("__");
@@ -411,7 +420,6 @@ class SAFPackage {
                     }
                 }
                 contentsWriter.append(contentsRow);
-
                 contentsWriter.newLine();
             } catch (FileNotFoundException fnf) {
                 System.out.println("There is no file named " + currentFile + " in " + input.getPath() + " while making " + itemDirectory);
@@ -429,7 +437,7 @@ class SAFPackage {
      */
     private String getFilenameName(String filenameWithPath) {
         if (filenameWithPath.contains("\\")) {
-            String[] pathSegments = filenameWithPath.split("\\");
+            String[] pathSegments = filenameWithPath.split("\\\\");
             return pathSegments[pathSegments.length - 1];
         } else if (filenameWithPath.contains("/")) {
             String[] pathSegments = filenameWithPath.split("/");
@@ -591,6 +599,18 @@ class SAFPackage {
         }
     }
 
+    public boolean isRegistration() {
+        return registration;
+    }
+
+    public void setRegistration(boolean registration) {
+        this.registration = registration;
+    }
+
+    public void setStoreNumber(String storeNumber) {
+        this.storeNumber = storeNumber;
+    }
+
     /**
      * A comparator for the FileObject which does an alphanum sort of the filename (baseName) of the FileObject
      */
@@ -646,4 +666,6 @@ class SAFPackage {
             e.printStackTrace();
         }
     }
+
+
 }
